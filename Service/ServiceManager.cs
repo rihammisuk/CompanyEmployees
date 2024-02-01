@@ -14,7 +14,7 @@ namespace Service
             _companyService = new Lazy<ICompanyService>(() => new
             CompanyService(repositoryManager, logger, mapper));
             _employeeService = new Lazy<IEmployeeService>(() => new
-            EmployeeService(repositoryManager, logger));
+            EmployeeService(repositoryManager, logger, mapper));
         }
 
         public ICompanyService CompanyService => _companyService.Value;

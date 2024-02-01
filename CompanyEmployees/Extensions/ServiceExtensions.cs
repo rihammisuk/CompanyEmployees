@@ -47,7 +47,9 @@ namespace CompanyEmployees.Extensions
         //This method replaces both AddDbContext and UseSqlServer methods and allows an easier configuration.But it doesn’t provide all of the
         //features the AddDbContext method provides.So for more advanced options, it is recommended to use AddDbContext.
 
-
+        public static IMvcBuilder AddCustomCSVFormatter(this IMvcBuilder builder) =>
+            builder.AddMvcOptions(config => config.OutputFormatters.Add(new
+            CsvOutputFormatter()));
 
 
     }
