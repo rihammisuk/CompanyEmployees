@@ -1,10 +1,5 @@
 ﻿using Contracts;
 using Entities.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Repository
 {
@@ -14,10 +9,15 @@ namespace Repository
         {
         }
 
+        public void CreateCompany(Company company)
+        {
+            Create(company);
+        }
+
         public IEnumerable<Company> GetAllCompanies(bool trackChanges)
         {
             return FindAll(trackChanges)
-                .OrderBy(c=>c.Name)
+                .OrderBy(c => c.Name)
                 .ToList();
         }
 
@@ -26,5 +26,9 @@ namespace Repository
             return FindByCondition(c => c.Id.Equals(companyId), trackChanges)
             .SingleOrDefault();
         }
+
+        public IEnumerable<Company> GetByIds(IEnumerable<Guid> ids, bool trackChanges) =>
+         FindByCondition(x => ids.Contains(x.Id), trackChanges)
+         .ToList();
     }
 }
