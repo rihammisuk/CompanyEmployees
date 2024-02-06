@@ -18,6 +18,7 @@ namespace Entities.Models
         [ForeignKey(nameof(Company))]
         public Guid CompanyId { get; set; }
         public Company? Company { get; set; }
+
     }
 
 }

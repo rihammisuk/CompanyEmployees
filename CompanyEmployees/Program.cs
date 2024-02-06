@@ -1,11 +1,15 @@
 using CompanyEmployees;
 using CompanyEmployees.Extensions;
 using CompanyEmployees.Presentation.ActionFilters;
+using CompanyEmployees.Utility;
+using Contracts;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Options;
 using NLog;
+using Service.DataShaping;
+using Shared.DataTransferObjects;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,6 +36,10 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     options.SuppressModelStateInvalidFilter = true;
 });
 builder.Services.AddScoped<ValidationFilterAttribute>();
+builder.Services.AddScoped<IDataShaper<EmployeeDto>, DataShaper<EmployeeDto>>();
+builder.Services.AddScoped<ValidateMediaTypeAttribute>();
+builder.Services.AddScoped<IEmployeeLinks, EmployeeLinks>();
+
 builder.Services.AddControllers(config =>
 {
     config.RespectBrowserAcceptHeader = true;
@@ -40,6 +48,7 @@ builder.Services.AddControllers(config =>
 }).AddXmlDataContractSerializerFormatters()
 .AddCustomCSVFormatter()
     .AddApplicationPart(typeof(CompanyEmployees.Presentation.AssemblyReference).Assembly);
+builder.Services.AddCustomMediaTypes();
 
 var app = builder.Build();
 

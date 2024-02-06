@@ -15,5 +15,6 @@ namespace Entities.Models
         public string? Address { get; set; }
         public string? Country { get; set; }
         public ICollection<Employee>? Employees { get; set; }
+
     }
 }
