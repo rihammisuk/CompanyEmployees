@@ -10,6 +10,9 @@ using static NLog.LayoutRenderers.Wrappers.ReplaceLayoutRendererWrapper;
 using System.Runtime.Intrinsics.X86;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
+using CompanyEmployees.Presentation.Controllers;
+using System;
 
 namespace CompanyEmployees.Extensions
 {
@@ -65,6 +68,8 @@ namespace CompanyEmployees.Extensions
                 {
                     systemTextJsonOutputFormatter.SupportedMediaTypes
                     .Add("application/vnd.codemaze.hateoas+json");
+                    systemTextJsonOutputFormatter.SupportedMediaTypes
+                    .Add("application/vnd.codemaze.apiroot+json");
                 }
                 var xmlOutputFormatter = config.OutputFormatters
                 .OfType<XmlDataContractSerializerOutputFormatter>()?
@@ -73,8 +78,42 @@ namespace CompanyEmployees.Extensions
                 {
                     xmlOutputFormatter.SupportedMediaTypes
                     .Add("application/vnd.codemaze.hateoas+xml");
+                    xmlOutputFormatter.SupportedMediaTypes
+                    .Add("application/vnd.codemaze.apiroot+xml");
                 }
             });
+        }
+
+        public static void ConfigureVersioning(this IServiceCollection services)
+        {
+            // Normal Versioning
+            //services.AddApiVersioning(opt =>
+            //{
+            //    opt.ReportApiVersions = true;
+            //    opt.AssumeDefaultVersionWhenUnspecified = true;
+            //    opt.DefaultApiVersion = new ApiVersion(1, 0);
+            //    //opt.ApiVersionReader = new HeaderApiVersionReader("api-version"); // HTTP Header Versioning
+            //    opt.ApiVersionReader = new QueryStringApiVersionReader("api-version"); //QueryString
+            //}).AddMvc();
+
+            //Using Conventions
+            //If we have a lot of versions of a single controller, we can assign these versions in the configuration instead
+            //Now, we can remove the [ApiVersion] attribute from the controllers
+            services.AddApiVersioning(opt =>
+            {
+                opt.ReportApiVersions = true;
+                opt.AssumeDefaultVersionWhenUnspecified = true;
+                opt.DefaultApiVersion = new ApiVersion(1, 0);
+                opt.ApiVersionReader = new HeaderApiVersionReader("api-version");
+            })
+             .AddMvc(opt =>
+             {
+                 opt.Conventions.Controller<CompaniesController>()
+                 .HasApiVersion(new ApiVersion(1, 0));
+                 opt.Conventions.Controller<CompaniesV2Controller>()
+                 .HasDeprecatedApiVersion(new ApiVersion(2, 0));
+             });
+
         }
 
     }
