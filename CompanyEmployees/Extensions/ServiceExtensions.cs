@@ -1,18 +1,17 @@
-﻿using Contracts;
+﻿using Asp.Versioning;
+using Azure.Core;
+using Azure;
+using CompanyEmployees.Presentation.Controllers;
+using Contracts;
 using LoggerService;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
 using Repository;
 using Service;
 using Service.Contracts;
-using static NLog.LayoutRenderers.Wrappers.ReplaceLayoutRendererWrapper;
-using System.Runtime.Intrinsics.X86;
-using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.AspNetCore.Mvc;
-using Asp.Versioning;
-using CompanyEmployees.Presentation.Controllers;
-using System;
+using System.Threading.RateLimiting;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CompanyEmployees.Extensions
 {
@@ -37,11 +36,11 @@ namespace CompanyEmployees.Extensions
         public static void ConfigureLoggerService(this IServiceCollection services) =>
             services.AddSingleton<ILoggerManager, LoggerManager>();
 
-        public static void ConfigureRepositoryManager(this IServiceCollection services) => 
+        public static void ConfigureRepositoryManager(this IServiceCollection services) =>
             services.AddScoped<IRepositoryManager, RepositoryManager>();
 
         public static void ConfigureServiceManager(this IServiceCollection services) =>
-            services.AddScoped <IServiceManager, ServiceManager>();
+            services.AddScoped<IServiceManager, ServiceManager>();
 
         public static void ConfigureSqlContext(this IServiceCollection services, IConfiguration configuration) =>
             services.AddDbContext<RepositoryContext>(opts => opts.UseSqlServer(configuration.GetConnectionString("sqlConnection")));
@@ -128,5 +127,57 @@ namespace CompanyEmployees.Extensions
                  opt.AddPolicy("QueryParamDuration", p => p.Expire(TimeSpan.FromSeconds(10)).SetVaryByQuery("firstKey"));
 
              });
+
+
+        public static void ConfigureRateLimitingOptions(this IServiceCollection services)
+        {
+            services.AddRateLimiter(opt =>
+            {
+
+                opt.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                RateLimitPartition.GetFixedWindowLimiter("GlobalLimiter",
+                partition => new FixedWindowRateLimiterOptions
+                {
+                    //At this point, we can start the app and send five requests from Postman.
+                    //All of those should return the expected result. But, if we send the sixth
+                    //request before one minute period expires
+                    //----------------------------------------------------
+                    AutoReplenishment = true,
+                    PermitLimit = 5,
+
+                    //==========Rate Limiter Queues=========
+                    QueueLimit = 2,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    //======================================
+                    Window = TimeSpan.FromMinutes(1)
+                    //----------------------------------------------------
+
+                }));
+
+                // Policies With Rate Limiting  ( create specific limit rules of specific endpoints)
+                opt.AddPolicy("SpecificPolicy", context =>
+                 RateLimitPartition.GetFixedWindowLimiter("SpecificLimiter",
+                 partition => new FixedWindowRateLimiterOptions
+                 {
+                     AutoReplenishment = true,
+                     PermitLimit = 3,
+                     Window = TimeSpan.FromSeconds(10)
+                 }));
+
+                //Rejection Configuration -   rate limiter denies the request should be 429
+                //opt.RejectionStatusCode = 429;
+
+                // we can use the OnRejected Func delegate instead of the RejectionStatusCode property to additionally modify the response after
+                // a user exceeds the number of requests
+                opt.OnRejected = async (context, token) =>
+                {
+                    context.HttpContext.Response.StatusCode = 429;
+                    if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                        await context.HttpContext.Response.WriteAsync($"Too many requests. Please try again after {retryAfter.TotalSeconds} second(s).", token);
+                    else
+                        await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", token);
+                };
+            });
+        }
     }
 }

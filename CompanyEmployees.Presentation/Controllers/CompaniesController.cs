@@ -24,6 +24,7 @@ namespace CompanyEmployees.Presentation.Controllers
         }
 
         [HttpGet(Name = "GetCompanies")]
+        [EnableRateLimiting("SpecificPolicy")]
         public async Task<IActionResult> GetCompanies()
         {
             var companies = await _service.CompanyService.GetAllCompaniesAsync(trackChanges: false);
@@ -33,6 +34,7 @@ namespace CompanyEmployees.Presentation.Controllers
         [HttpGet("{id:guid}", Name = "CompanyById")]
         //[ResponseCache(Duration = 60)] // For response caching
         [OutputCache(Duration = 60)] // For output caching
+        [DisableRateLimiting]       // This attribute completely disables the rate limiting middleware from applying to this endpoint
         public async Task<IActionResult> GetCompany(Guid id)
         {
             var company = await _service.CompanyService.GetCompanyAsync(id, trackChanges: false);
