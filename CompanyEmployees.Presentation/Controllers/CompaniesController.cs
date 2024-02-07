@@ -2,14 +2,18 @@
 using CompanyEmployees.Presentation.ActionFilters;
 using CompanyEmployees.Presentation.ModelBinders;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.AspNetCore.RateLimiting;
 using Service.Contracts;
 using Shared.DataTransferObjects;
 
 namespace CompanyEmployees.Presentation.Controllers
 {
-    [ApiVersion("1.0")]
+    //[ApiVersion("1.0")]
     [Route("api/companies")]
     [ApiController]
+    //[ResponseCache(CacheProfileName = "120SecondsDuration")]  // For response caching
+    [OutputCache(PolicyName = "120SecondsDuration")] // For output caching
     public class CompaniesController : ControllerBase
     {
         private readonly IServiceManager _service;
@@ -27,9 +31,16 @@ namespace CompanyEmployees.Presentation.Controllers
         }
 
         [HttpGet("{id:guid}", Name = "CompanyById")]
+        //[ResponseCache(Duration = 60)] // For response caching
+        [OutputCache(Duration = 60)] // For output caching
         public async Task<IActionResult> GetCompany(Guid id)
         {
             var company = await _service.CompanyService.GetCompanyAsync(id, trackChanges: false);
+
+            //For Caching Revalidation (Output caching)
+            var etag = $"\"{Guid.NewGuid():n}\"";
+            HttpContext.Response.Headers.ETag = etag;
+
             return Ok(company);
         }
 
@@ -80,5 +91,22 @@ namespace CompanyEmployees.Presentation.Controllers
             Response.Headers.Add("Allow", "GET, OPTIONS, POST, PUT, DELETE");
             return Ok();
         }
+
+        [HttpGet("output-nocache")]
+        [OutputCache(NoStore = true)]
+        public IActionResult NonCachedOutput()
+        {
+            return Ok($"Output was generated at {DateTime.Now}");
+        }
+
+        [HttpGet("output-varybykey")]
+        //[OutputCache(VaryByQueryKeys = new[] { nameof(firstKey) }, Duration = 10)]
+        [OutputCache(PolicyName = "QueryParamDuration")]
+        public IActionResult VaryByKey(string firstKey, string secondKey)
+        {
+            return Ok($"{firstKey} {secondKey} - retrieved at {DateTime.Now}");
+        }
+
+
     }
 }

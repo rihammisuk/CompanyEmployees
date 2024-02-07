@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using NLog;
 using Service.DataShaping;
 using Shared.DataTransferObjects;
+using System.Reflection.PortableExecutable;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,12 +41,20 @@ builder.Services.AddScoped<IDataShaper<EmployeeDto>, DataShaper<EmployeeDto>>();
 builder.Services.AddScoped<ValidateMediaTypeAttribute>();
 builder.Services.AddScoped<IEmployeeLinks, EmployeeLinks>();
 builder.Services.ConfigureVersioning();
-
+//builder.Services.ConfigureResponseCaching();
+builder.Services.ConfigureOutputCaching();
 builder.Services.AddControllers(config =>
 {
     config.RespectBrowserAcceptHeader = true;
     config.ReturnHttpNotAcceptable = true;
     config.InputFormatters.Insert(0, GetJsonPatchInputFormatter());
+
+
+    // For response caching
+    //config.CacheProfiles.Add("120SecondsDuration", new CacheProfile 
+    //{
+    //    Duration =120
+    //});
 }).AddXmlDataContractSerializerFormatters()
 .AddCustomCSVFormatter()
     .AddApplicationPart(typeof(CompanyEmployees.Presentation.AssemblyReference).Assembly);
@@ -73,6 +82,9 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 });
 
 app.UseCors("CorsPolicy");
+//app.UseResponseCaching();
+app.UseOutputCache();
+
 
 app.UseAuthorization();
 

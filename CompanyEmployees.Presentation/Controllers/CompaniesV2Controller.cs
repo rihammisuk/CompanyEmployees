@@ -27,9 +27,4 @@ namespace CompanyEmployees.Presentation.Controllers
         }
     }
 
-
-
-
-
-
 }
