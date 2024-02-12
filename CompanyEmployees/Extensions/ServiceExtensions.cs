@@ -14,6 +14,7 @@ using Microsoft.OpenApi.Models;
 using Repository;
 using Service;
 using Service.Contracts;
+using System.Reflection;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -47,8 +48,19 @@ namespace CompanyEmployees.Extensions
             services.AddScoped<IServiceManager, ServiceManager>();
 
         public static void ConfigureSqlContext(this IServiceCollection services, IConfiguration configuration) =>
-            services.AddDbContext<RepositoryContext>(opts => opts.UseSqlServer(configuration.GetConnectionString("sqlConnection")));
+            services.AddDbContext<RepositoryContext>(opts => opts.UseSqlServer(configuration.GetConnectionString("sqlConnection")),
+                ServiceLifetime.Scoped);
 
+        //services.AddDbContext<RepositoryContext>(options =>
+        //{
+        //    options.UseSqlServer(configuration.GetConnectionString("sqlConnection"),
+        //        sqlServerOptions =>
+        //        {
+        //            sqlServerOptions.EnableRetryOnFailure();
+        //        });
+        //});
+
+        //services.AddDbContext<RepositoryContext>(opts => opts.UseSqlServer(configuration.GetConnectionString("sqlConnection")));
         //From.NET 6 RC2, there is a shortcut method AddSqlServer, which can be used like this:
         //public static void ConfigureSqlContex(this IServiceCollection services, IConfiguration configuration) =>
         //    services.AddSqlServer<RepositoryContext>((configuration.GetConnectionString("sqlConnection")));
@@ -257,9 +269,17 @@ namespace CompanyEmployees.Extensions
                     Version = "v2"
                 });
 
-                var xmlFile = $"{typeof(Presentation.AssemblyReference).Assembly.GetName().Name}.xml";
-                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                s.IncludeXmlComments(xmlPath);
+                //var xmlFile = $"{typeof(Presentation.AssemblyReference).Assembly.GetName().Name}.xml";
+                //var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                //s.IncludeXmlComments(xmlPath);
+
+
+                var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+                var commentsFileName = Assembly.GetExecutingAssembly().GetName().Name + ".xml";
+                //var commentsFileName = "Comments" + ".XML";
+                var commentsFile = Path.Combine(baseDirectory, commentsFileName);
+
+                s.IncludeXmlComments(commentsFile);
 
                 s.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
